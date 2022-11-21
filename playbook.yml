@@ -1,0 +1,46 @@
+---
+- hosts: all
+  tasks:
+
+    - apt:
+        name:
+          - build-essential
+          - tmux
+          - neovim
+          - fish
+          - git
+          - curl
+        update_cache: yes
+        cache_valid_time: 3600
+      become: yes
+
+    - copy:
+        src: tmux.conf
+        dest: ~/.tmux.conf
+
+    - copy:
+        src: ssh/id_rsa
+        dest: ~/.ssh/id_rsa
+        mode: 0600
+
+    - name: 'change shell'
+      user: name={{ansible_user}} shell=/usr/bin/fish
+      become: yes
+
+    - lineinfile: path=~/.config/fish/config.fish line=fish_vi_key_bindings create=yes
+
+    - name: install nodejs
+      become: yes
+      block:
+        - shell:
+            cmd: curl https://deb.nodesource.com/gpgkey/nodesource.gpg.key | /usr/bin/gpg --dearmor > /usr/share/keyrings/nodesource.gpg
+            creates: /usr/share/keyrings/nodesource.gpg
+        - apt_repository:
+            repo: deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/{{node_version}} {{ansible_distribution_release}} main
+            filename: nodesource
+        - apt: name=nodejs
+
+      vars:
+        node_version: node_16.x
+
+
